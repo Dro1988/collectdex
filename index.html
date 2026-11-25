@@ -4,18 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CollectDex — Scan, Value & Track Your Collection</title>
-<meta name="description" content="CollectDex: search real card and comic catalogs, track your collection, binders, wishlist and set completion. Pokémon, Magic, Yu-Gi-Oh!, comics, My Little Pony and more.">
+<meta name="description" content="CollectDex: the collector's command center. Quick camera scanning, live catalog values with sources, binders, set completion, price movers. Pokémon, Magic, Yu-Gi-Oh!, comics, My Little Pony and more.">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗂️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ffb02e'/><text x='50' y='66' font-size='44' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%231a1405'>CD</text></svg>">
 </head>
 <body>
+<div class="bg-glow"></div>
 <header class="topbar">
-  <div class="brand"><span class="brand-mark">CD</span><span class="brand-name">Collect<em>Dex</em></span></div>
+  <div class="brand"><span class="brand-mark">CD</span><span class="brand-name">Collect<em>Dex</em></span><span class="brand-tag">collector's command center</span></div>
   <div class="totals" id="totalsBar">Collection value: <strong>$0.00</strong></div>
 </header>
 
 <nav class="tabs" id="tabs">
-  <button data-tab="search" class="active">Search</button>
+  <button data-tab="scan" class="active">📷 Scan</button>
+  <button data-tab="search">Search</button>
   <button data-tab="collection">My Collection</button>
   <button data-tab="binders">Binders</button>
   <button data-tab="wishlist">Wishlist</button>
@@ -23,12 +25,48 @@
 </nav>
 
 <main>
+  <!-- SCAN -->
+  <section id="tab-scan" class="tab active">
+    <div class="hero">
+      <h2>Quick camera scanning</h2>
+      <p>Snap a card, confirm the exact match, and it's in your collection with its live value. <strong>Nothing is ever added without your confirmation.</strong></p>
+    </div>
+    <div class="scan-steps">
+      <div class="scan-step" id="scanStep1">
+        <h3><span>1</span> Capture the card</h3>
+        <div class="scan-actions">
+          <button id="camStart" class="primary">Open camera</button>
+          <label class="photo-btn">Upload / take photo
+            <input id="scanPhoto" type="file" accept="image/*" capture="environment" hidden>
+          </label>
+        </div>
+        <video id="camVideo" autoplay playsinline class="hidden"></video>
+        <div class="scan-actions hidden" id="camActions">
+          <button id="camSnap" class="primary">📸 Capture</button>
+          <button id="camStop" class="ghost">Close camera</button>
+        </div>
+        <canvas id="camCanvas" class="hidden"></canvas>
+        <img id="scanImg" class="scan-img hidden" alt="Captured card">
+      </div>
+      <div class="scan-step" id="scanStep2">
+        <h3><span>2</span> Identify it</h3>
+        <p class="hint">Type the card's name (printed at the top of the card). CollectDex matches it against the live Pokémon, Magic and Yu-Gi-Oh! catalogs and ranks the candidates — you pick the exact printing. Full AI vision identification plugs in here when a vision key is added; until then we match by name and never guess silently.</p>
+        <div class="search-box">
+          <input id="scanName" type="search" placeholder="Card name, e.g. Charizard" autocomplete="off">
+          <button id="scanFind" class="primary">Find matches</button>
+        </div>
+        <div id="scanResults" class="grid"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- SEARCH -->
-  <section id="tab-search" class="tab active">
+  <section id="tab-search" class="tab">
     <div class="cat-row" id="catRow"></div>
-    <div class="search-box">
+    <div class="search-box ac-wrap">
       <input id="searchInput" type="search" placeholder="Search a card or comic name…" autocomplete="off">
       <button id="searchBtn" class="primary">Search</button>
+      <div id="acBox" class="ac-box hidden"></div>
     </div>
     <p class="hint" id="searchHint"></p>
     <div id="mlpSets" class="mlp-sets hidden"></div>
@@ -37,23 +75,38 @@
       <h3>Add something by hand</h3>
       <p class="hint">Works for every category — including Lorcana, One Piece, sports cards, comics and My Little Pony, where you enter the details yourself.</p>
       <button id="manualBtn" class="ghost">+ Manual add</button>
-      <label class="photo-btn">📷 Photo assist
-        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
-      </label>
-      <p class="hint">Photo assist: pick a photo of your card, then type its name — you confirm the exact catalog match before anything is added. Nothing is ever added automatically.</p>
-      <div id="photoPreview" class="hidden"><img id="photoImg" alt="Your card photo"><p class="hint">Now search its name above and pick the exact match.</p></div>
     </div>
   </section>
 
   <!-- COLLECTION -->
   <section id="tab-collection" class="tab">
     <div class="summary" id="collectionSummary"></div>
+    <div class="insights" id="insights"></div>
     <div class="filter-row">
+      <input id="colTextFilter" type="search" placeholder="Filter by name…">
       <select id="colCatFilter"><option value="">All categories</option></select>
       <select id="colBinderFilter"><option value="">All binders</option></select>
+      <select id="colSort">
+        <option value="added">Newest first</option>
+        <option value="value-desc">Value: high → low</option>
+        <option value="value-asc">Value: low → high</option>
+        <option value="gain-desc">Biggest gain</option>
+        <option value="paid-desc">Paid: high → low</option>
+        <option value="name">Name A–Z</option>
+      </select>
+      <label class="chk"><input type="checkbox" id="colDupOnly"> Duplicates only</label>
+    </div>
+    <div class="io-row">
+      <button id="refreshPrices" class="ghost">↻ Refresh prices</button>
+      <button id="exportJson" class="ghost">Export JSON</button>
+      <button id="exportCsv" class="ghost">Export CSV</button>
+      <label class="ghost file-label">Import
+        <input id="importFile" type="file" accept=".json,.csv" hidden>
+      </label>
+      <span class="hint" id="ioMsg"></span>
     </div>
     <div id="collectionList" class="grid"></div>
-    <p class="empty hidden" id="collectionEmpty">Nothing here yet. Search a catalog or add an item by hand.</p>
+    <p class="empty hidden" id="collectionEmpty">Nothing here yet. Scan a card, search a catalog, or add an item by hand.</p>
   </section>
 
   <!-- BINDERS -->
@@ -68,14 +121,16 @@
   <!-- WISHLIST -->
   <section id="tab-wishlist" class="tab">
     <div id="wishlistList" class="grid"></div>
-    <p class="empty hidden" id="wishlistEmpty">Your wishlist is empty. Tap “☆ Want” on any search result.</p>
+    <p class="empty hidden" id="wishlistEmpty">Your wishlist is empty. Tap “☆ Want” on any search or scan result.</p>
   </section>
 
   <!-- SETS -->
   <section id="tab-sets" class="tab">
     <h3>Pokémon set completion</h3>
-    <p class="hint">Live set list from TCGdex. Progress counts distinct cards you own in each set.</p>
+    <p class="hint">Live set list from TCGdex. Tap a set to see exactly which cards you're missing.</p>
+    <div class="search-box" style="margin-bottom:10px"><input id="setFilter" type="search" placeholder="Filter sets, e.g. Base Set…"></div>
     <div id="pokeSets" class="set-list"><p class="hint">Loading sets…</p></div>
+    <div id="setDetail" class="set-detail hidden"></div>
     <h3>My Little Pony CCG (Enterplay)</h3>
     <p class="hint">Catalog &amp; tracking only — no pricing source exists for MLP cards, so values are honestly shown as unavailable.</p>
     <div id="mlpProgress" class="set-list"></div>
@@ -94,10 +149,12 @@
   <div class="modal-card">
     <h3 id="modalTitle">Add to collection</h3>
     <div id="modalItem" class="modal-item"></div>
+    <div id="dupWarn" class="dup-warn hidden"></div>
     <label>Condition
       <select id="fCondition"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option><option>Graded</option></select>
     </label>
     <label>Binder <select id="fBinder"></select></label>
+    <label>Location <input id="fLocation" type="text" placeholder="e.g. Blue binder, page 3 / Slab box"></label>
     <label>What you paid ($) <input id="fPaid" type="number" min="0" step="0.01" placeholder="0.00"></label>
     <label>Current value ($) <input id="fValue" type="number" min="0" step="0.01" placeholder="Leave blank if no source"></label>
     <label>Value source <input id="fValueSource" type="text" placeholder="e.g. TCGplayer market via TCGdex"></label>
