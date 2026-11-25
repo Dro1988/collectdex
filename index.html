@@ -4,32 +4,78 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CollectDex — Scan, Value & Track Your Collection</title>
-<meta name="description" content="CollectDex: the collector's command center. Quick camera scanning, live catalog values with sources, binders, set completion, price movers. Pokémon, Magic, Yu-Gi-Oh!, comics, My Little Pony and more.">
+<meta name="description" content="CollectDex: scan cards in seconds, see live values with their sources, chase complete sets, and run your whole collection from one place. Pokémon, Magic, Yu-Gi-Oh!, comics, My Little Pony and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ffb02e'/><text x='50' y='66' font-size='44' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%231a1405'>CD</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23ffb02e'/><text x='50' y='67' font-size='42' text-anchor='middle' font-family='Arial' font-weight='bold' fill='%231a1405'>CD</text></svg>">
 </head>
 <body>
-<div class="bg-glow"></div>
+<div class="bg-fx" aria-hidden="true"><div class="bg-grid"></div><div class="bg-glow g1"></div><div class="bg-glow g2"></div><div class="bg-glow g3"></div></div>
+
 <header class="topbar">
-  <div class="brand"><span class="brand-mark">CD</span><span class="brand-name">Collect<em>Dex</em></span><span class="brand-tag">collector's command center</span></div>
-  <div class="totals" id="totalsBar">Collection value: <strong>$0.00</strong></div>
+  <div class="topbar-in">
+    <a class="brand" href="#" id="brandHome">
+      <span class="brand-mark">CD</span>
+      <span class="brand-name">Collect<em>Dex</em></span>
+    </a>
+    <div class="topbar-search">
+      <input id="topSearch" type="search" placeholder="Search any card or comic…" autocomplete="off">
+      <button id="topSearchBtn" aria-label="Search">Search</button>
+    </div>
+    <div class="totals" id="totalsBar">Collection value: <strong>$0.00</strong></div>
+  </div>
 </header>
 
+<section class="hero">
+  <div class="hero-in">
+    <div class="hero-copy">
+      <span class="hero-eyebrow">The collector's command center</span>
+      <h1>Every card you own.<br><span class="grad">Scanned. Valued. Tracked.</span></h1>
+      <p class="hero-sub">Point your camera at a card, confirm the match, and it's in your collection with a live, source-labeled value. Chase complete sets, watch your biggest movers, and keep every binder in order — no account, no sign-up wall.</p>
+      <div class="hero-ctas">
+        <button class="btn-hero primary" data-goto="scan">📷 Scan a card</button>
+        <button class="btn-hero ghost" data-goto="search">Browse the catalog</button>
+      </div>
+      <div class="hero-stats">
+        <div><strong>8</strong><span>categories tracked</span></div>
+        <div><strong>3</strong><span>live catalogs built in</span></div>
+        <div><strong>100%</strong><span>prices labeled by source</span></div>
+      </div>
+    </div>
+    <div class="hero-cards" id="heroCards" aria-hidden="true">
+      <div class="hero-card hc1 skeleton"></div>
+      <div class="hero-card hc2 skeleton"></div>
+      <div class="hero-card hc3 skeleton"></div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature"><span class="f-ico">📷</span><div><h3>Quick camera scan</h3><p>Snap a card, pick the exact printing from ranked matches — nothing is added without your tap.</p></div></div>
+  <div class="feature"><span class="f-ico">💹</span><div><h3>Live values, honest sources</h3><p>Every price names where it came from. No source, no number — we never invent values.</p></div></div>
+  <div class="feature"><span class="f-ico">🎯</span><div><h3>Set completion</h3><p>See exactly which cards you're missing from a set, and add them in one tap.</p></div></div>
+  <div class="feature"><span class="f-ico">🗂️</span><div><h3>Binders &amp; wishlist</h3><p>Unlimited binders, target prices, duplicates flagged automatically.</p></div></div>
+</section>
+
 <nav class="tabs" id="tabs">
-  <button data-tab="scan" class="active">📷 Scan</button>
-  <button data-tab="search">Search</button>
-  <button data-tab="collection">My Collection</button>
-  <button data-tab="binders">Binders</button>
-  <button data-tab="wishlist">Wishlist</button>
-  <button data-tab="sets">Set Progress</button>
+  <div class="tabs-in">
+    <button data-tab="scan" class="active">📷 Scan</button>
+    <button data-tab="search">Browse</button>
+    <button data-tab="collection">My Collection</button>
+    <button data-tab="binders">Binders</button>
+    <button data-tab="wishlist">Wishlist</button>
+    <button data-tab="sets">Set Progress</button>
+  </div>
 </nav>
 
 <main>
   <!-- SCAN -->
   <section id="tab-scan" class="tab active">
-    <div class="hero">
-      <h2>Quick camera scanning</h2>
-      <p>Snap a card, confirm the exact match, and it's in your collection with its live value. <strong>Nothing is ever added without your confirmation.</strong></p>
+    <div class="section-head">
+      <h2>Scan a card</h2>
+      <p>Capture it, confirm the exact printing, done. Raw cards and graded slabs both welcome.</p>
     </div>
     <div class="scan-steps">
       <div class="scan-step" id="scanStep1">
@@ -47,6 +93,7 @@
         </div>
         <canvas id="camCanvas" class="hidden"></canvas>
         <img id="scanImg" class="scan-img hidden" alt="Captured card">
+        <p class="hint scan-note">Good light and a flat, glare-free shot get the cleanest match.</p>
       </div>
       <div class="scan-step" id="scanStep2">
         <h3><span>2</span> Identify it</h3>
@@ -60,10 +107,15 @@
     </div>
   </section>
 
-  <!-- SEARCH -->
+  <!-- BROWSE / SEARCH -->
   <section id="tab-search" class="tab">
+    <div class="section-head">
+      <h2>Browse the catalog</h2>
+      <p>Live card data across the games — pick a category and start exploring.</p>
+    </div>
+    <div class="cat-tiles" id="catTiles"></div>
     <div class="cat-row" id="catRow"></div>
-    <div class="search-box ac-wrap">
+    <div class="search-box ac-wrap search-hero">
       <input id="searchInput" type="search" placeholder="Search a card or comic name…" autocomplete="off">
       <button id="searchBtn" class="primary">Search</button>
       <div id="acBox" class="ac-box hidden"></div>
@@ -71,6 +123,10 @@
     <p class="hint" id="searchHint"></p>
     <div id="mlpSets" class="mlp-sets hidden"></div>
     <div id="results" class="grid"></div>
+    <div id="trendingWrap">
+      <div class="rail-head"><h3>Fresh from the newest Pokémon set</h3><span class="hint">Live from TCGdex — tap + Add to start your collection</span></div>
+      <div id="trendingGrid" class="grid"><p class="hint">Loading live cards…</p></div>
+    </div>
     <div class="manual-card">
       <h3>Add something by hand</h3>
       <p class="hint">Works for every category — including Lorcana, One Piece, sports cards, comics and My Little Pony, where you enter the details yourself.</p>
@@ -80,6 +136,10 @@
 
   <!-- COLLECTION -->
   <section id="tab-collection" class="tab">
+    <div class="section-head">
+      <h2>My Collection</h2>
+      <p>Your portfolio at a glance — what it's worth, what you paid, and what's moving.</p>
+    </div>
     <div class="summary" id="collectionSummary"></div>
     <div class="insights" id="insights"></div>
     <div class="filter-row">
@@ -111,6 +171,10 @@
 
   <!-- BINDERS -->
   <section id="tab-binders" class="tab">
+    <div class="section-head">
+      <h2>Binders</h2>
+      <p>Organize your collection your way — as many binders as you need, no caps.</p>
+    </div>
     <div class="binder-create">
       <input id="binderName" placeholder="New binder name (e.g. Childhood Pokémon)">
       <button id="binderAdd" class="primary">Create binder</button>
@@ -120,28 +184,37 @@
 
   <!-- WISHLIST -->
   <section id="tab-wishlist" class="tab">
+    <div class="section-head">
+      <h2>Wishlist</h2>
+      <p>The chase list — set a target price and CollectDex flags it when a card drops to your number.</p>
+    </div>
     <div id="wishlistList" class="grid"></div>
     <p class="empty hidden" id="wishlistEmpty">Your wishlist is empty. Tap “☆ Want” on any search or scan result.</p>
   </section>
 
   <!-- SETS -->
   <section id="tab-sets" class="tab">
-    <h3>Pokémon set completion</h3>
+    <div class="section-head">
+      <h2>Set Progress</h2>
+      <p>Completion tracking across your sets — and exactly which cards stand between you and 100%.</p>
+    </div>
+    <h3 class="sub-head">Pokémon set completion</h3>
     <p class="hint">Live set list from TCGdex. Tap a set to see exactly which cards you're missing.</p>
-    <div class="search-box" style="margin-bottom:10px"><input id="setFilter" type="search" placeholder="Filter sets, e.g. Base Set…"></div>
+    <div class="search-box" style="margin-bottom:12px"><input id="setFilter" type="search" placeholder="Filter sets, e.g. Base Set…"></div>
     <div id="pokeSets" class="set-list"><p class="hint">Loading sets…</p></div>
     <div id="setDetail" class="set-detail hidden"></div>
-    <h3>My Little Pony CCG (Enterplay)</h3>
+    <h3 class="sub-head">My Little Pony CCG (Enterplay)</h3>
     <p class="hint">Catalog &amp; tracking only — no pricing source exists for MLP cards, so values are honestly shown as unavailable.</p>
     <div id="mlpProgress" class="set-list"></div>
-    <h3>Your other sets</h3>
+    <h3 class="sub-head">Your other sets</h3>
     <div id="otherSets" class="set-list"></div>
   </section>
 </main>
 
 <footer>
-  <p>CollectDex — your collection lives on your device (browser storage). No account, no sign-up.</p>
-  <p class="fineprint">Prices are shown with their source and are market snapshots, not guarantees. Card data: TCGdex (Pokémon), Scryfall (Magic — fan-content terms apply), YGOPRODeck (Yu-Gi-Oh!). Comics &amp; MLP: catalog/tracking; no live pricing source yet.</p>
+  <div class="foot-brand"><span class="brand-mark">CD</span><span class="brand-name">Collect<em>Dex</em></span></div>
+  <p>Your collection lives on your device (browser storage). No account, no sign-up.</p>
+  <p class="fineprint">Prices are shown with their source and are market snapshots, not guarantees of what a card will sell for. Card data: TCGdex (Pokémon), Scryfall (Magic — fan-content terms apply), YGOPRODeck (Yu-Gi-Oh!). Comics &amp; MLP: catalog/tracking; no live pricing source yet.</p>
 </footer>
 
 <!-- ADD / EDIT MODAL -->

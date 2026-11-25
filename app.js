@@ -56,12 +56,79 @@ document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',
 const catRow = document.getElementById('catRow');
 CATEGORIES.forEach(c=>{
   const b=document.createElement('button');
-  b.textContent = c.label + (c.live ? '' : ' · manual');
+  b.textContent = c.label;
   b.dataset.cat=c.id;
   if(c.id===activeCat) b.classList.add('active');
-  b.addEventListener('click', ()=>{ activeCat=c.id; catRow.querySelectorAll('button').forEach(x=>x.classList.toggle('active', x.dataset.cat===c.id)); updateHint(); renderMlpSets(); });
+  b.addEventListener('click', ()=>{ activeCat=c.id; catRow.querySelectorAll('button').forEach(x=>x.classList.toggle('active', x.dataset.cat===c.id)); document.querySelectorAll('.cat-tile').forEach(x=>x.classList.toggle('active', x.dataset.cat===c.id)); updateHint(); renderMlpSets(); });
   catRow.appendChild(b);
 });
+
+/* ---------- category tiles (browse landing) ---------- */
+const TILE_META={
+  pokemon:{bg:'linear-gradient(140deg,#3a2b12,#17130a)', sub:'Live catalog & market prices'},
+  magic:{bg:'linear-gradient(140deg,#1d2f4d,#0e1524)', sub:'Live catalog & daily prices'},
+  yugioh:{bg:'linear-gradient(140deg,#3d1a3a,#1a0e20)', sub:'Live catalog & prices'},
+  lorcana:{bg:'linear-gradient(140deg,#123a3d,#0a1a1c)', sub:'Track by hand — no live source yet'},
+  onepiece:{bg:'linear-gradient(140deg,#4d1f16,#22100b)', sub:'Track by hand — no live source yet'},
+  sports:{bg:'linear-gradient(140deg,#173d24,#0b1c11)', sub:'Graded & raw, tracked by hand'},
+  comics:{bg:'linear-gradient(140deg,#3d3412,#1d190a)', sub:'Issues, variants & slabs by hand'},
+  mlp:{bg:'linear-gradient(140deg,#3a2350,#1c1130)', sub:'Enterplay CCG — all 12 sets'},
+};
+(function renderCatTiles(){
+  const wrap=document.getElementById('catTiles'); if(!wrap) return;
+  CATEGORIES.forEach(c=>{
+    const m=TILE_META[c.id]||{};
+    const b=document.createElement('button');
+    b.className='cat-tile'+(c.id===activeCat?' active':'');
+    b.dataset.cat=c.id;
+    b.style.setProperty('--tile-bg', m.bg||'');
+    b.innerHTML=`<span class="ct-live ${c.live?'':'manual'}">${c.live?'Live':'Manual'}</span><span class="ct-name">${esc(c.label)}</span><span class="ct-sub">${esc(m.sub||'')}</span>`;
+    b.addEventListener('click', ()=>{ const chip=catRow.querySelector(`button[data-cat="${c.id}"]`); if(chip) chip.click(); document.getElementById('searchInput').focus(); });
+    wrap.appendChild(b);
+  });
+})();
+
+/* ---------- hero imagery + trending rail (real catalog art) ---------- */
+async function loadHeroCards(){
+  const slots=[...document.querySelectorAll('#heroCards .hero-card')];
+  if(!slots.length) return;
+  try{
+    const names=['charizard','pikachu','umbreon'];
+    const picks=await Promise.all(names.map(async n=>{
+      const r=await fetch('https://api.tcgdex.net/v2/en/cards?name='+encodeURIComponent(n));
+      const d=await r.json();
+      const withImg=d.filter(c=>c.image);
+      return withImg[Math.min(2, withImg.length-1)]||withImg[0];
+    }));
+    picks.forEach((c,i)=>{ if(c&&slots[i]){ slots[i].classList.remove('skeleton'); slots[i].innerHTML=`<img src="${esc(c.image)}/high.webp" alt="">`; } });
+  }catch(e){ slots.forEach(s=>s.classList.remove('skeleton')); }
+}
+async function loadTrending(){
+  const grid=document.getElementById('trendingGrid'); if(!grid) return;
+  try{
+    if(!pokeSetsCache){ const r=await fetch('https://api.tcgdex.net/v2/en/sets'); pokeSetsCache=await r.json(); }
+    const latest=pokeSetsCache[pokeSetsCache.length-1];
+    const d=await (await fetch('https://api.tcgdex.net/v2/en/sets/'+encodeURIComponent(latest.id))).json();
+    const head=document.querySelector('#trendingWrap .rail-head h3');
+    if(head) head.textContent='Fresh from '+latest.name;
+    const picks=(d.cards||[]).slice(0,8);
+    const items=[];
+    for(const c of picks){ try{ items.push(await fetchPokemonById(c.id)); }catch(e){} }
+    if(items.length) renderResults(items, grid);
+    else grid.innerHTML='<p class="hint">Live cards are unavailable right now — search above still works.</p>';
+  }catch(e){ grid.innerHTML='<p class="hint">Couldn’t load live cards right now — search above still works.</p>'; }
+}
+
+/* ---------- header search + hero CTAs ---------- */
+function headerSearch(){
+  const q=document.getElementById('topSearch').value.trim();
+  showTab('search');
+  if(q){ document.getElementById('searchInput').value=q; doSearch(); }
+}
+document.getElementById('topSearchBtn').addEventListener('click', headerSearch);
+document.getElementById('topSearch').addEventListener('keydown', e=>{ if(e.key==='Enter') headerSearch(); });
+document.querySelectorAll('[data-goto]').forEach(b=>b.addEventListener('click', ()=>{ showTab(b.dataset.goto); window.scrollTo({top:0,behavior:'smooth'}); }));
+document.getElementById('brandHome').addEventListener('click', e=>{ e.preventDefault(); showTab('scan'); window.scrollTo({top:0,behavior:'smooth'}); });
 function updateHint(){
   const msgs={
     pokemon:'Live catalog & prices from TCGdex (TCGplayer market / Cardmarket). Start typing for instant suggestions.',
@@ -93,7 +160,7 @@ async function fetchPokemonById(id){
   const tp=d.pricing&&d.pricing.tcgplayer;
   if(tp){ const v=Object.values(tp).find(x=>x&&typeof x==='object'&&x.marketPrice); if(v){ price=v.marketPrice; src='TCGplayer market via TCGdex'; } }
   if(price==null && d.pricing&&d.pricing.cardmarket&&d.pricing.cardmarket.trend!=null){ price=d.pricing.cardmarket.trend; src='Cardmarket trend via TCGdex (EUR)'; }
-  return {name:d.name, category:'pokemon', set:d.set?d.set.name:'', setId:d.set?d.set.id:'', cardId:d.id, image:(d.image?d.image+'/low.webp':''), value:price, valueSource:src};
+  return {name:d.name, category:'pokemon', set:d.set?d.set.name:'', setId:d.set?d.set.id:'', cardId:d.id, image:(d.image?d.image+'/low.webp':''), value:price, valueSource:src, rarity:d.rarity||'', number:d.localId?('#'+d.localId):''};
 }
 async function searchPokemon(q){
   const r=await fetch('https://api.tcgdex.net/v2/en/cards?name='+encodeURIComponent(q));
@@ -107,7 +174,7 @@ function scryfallToItem(c){
   let price=null, src='';
   if(c.prices&&c.prices.usd){ price=parseFloat(c.prices.usd); src='TCGplayer via Scryfall (daily)'; }
   else if(c.prices&&c.prices.eur){ price=parseFloat(c.prices.eur); src='Cardmarket via Scryfall (EUR, daily)'; }
-  return {name:c.name, category:'magic', set:c.set_name||'', setId:c.set||'', cardId:c.id, image:(c.image_uris?c.image_uris.normal:(c.card_faces&&c.card_faces[0].image_uris?c.card_faces[0].image_uris.normal:'')), value:price, valueSource:src};
+  return {name:c.name, category:'magic', set:c.set_name||'', setId:c.set||'', cardId:c.id, image:(c.image_uris?c.image_uris.normal:(c.card_faces&&c.card_faces[0].image_uris?c.card_faces[0].image_uris.normal:'')), value:price, valueSource:src, rarity:c.rarity?c.rarity.charAt(0).toUpperCase()+c.rarity.slice(1):'', number:c.collector_number?('#'+c.collector_number):''};
 }
 async function searchMagic(q){
   const r=await fetch('https://api.scryfall.com/cards/search?q='+encodeURIComponent('name:'+q)+'&unique=prints');
@@ -126,7 +193,8 @@ function yugiohToItem(c){
   let price=null, src='';
   const tcg=parseFloat(p.tcgplayer_price), cm=parseFloat(p.cardmarket_price), eb=parseFloat(p.ebay_price);
   if(tcg>0){ price=tcg; src='TCGplayer via YGOPRODeck'; } else if(cm>0){ price=cm; src='Cardmarket via YGOPRODeck (EUR)'; } else if(eb>0){ price=eb; src='eBay via YGOPRODeck'; }
-  return {name:c.name, category:'yugioh', set:(c.card_sets&&c.card_sets[0]?c.card_sets[0].set_name:''), setId:'', cardId:String(c.id), image:(c.card_images&&c.card_images[0]?c.card_images[0].image_url:''), value:price, valueSource:src};
+  const cs=(c.card_sets&&c.card_sets[0])||{};
+  return {name:c.name, category:'yugioh', set:cs.set_name||'', setId:'', cardId:String(c.id), image:(c.card_images&&c.card_images[0]?c.card_images[0].image_url:''), value:price, valueSource:src, rarity:cs.set_rarity||'', number:cs.set_code||''};
 }
 async function searchYugioh(q){
   const r=await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php?fname='+encodeURIComponent(q));
@@ -157,6 +225,12 @@ async function doSearch(){
 document.getElementById('searchBtn').addEventListener('click', doSearch);
 document.getElementById('searchInput').addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(); });
 
+function chipsHtml(it){
+  const chips=[];
+  if(it.rarity) chips.push(`<span class="chip rarity">${esc(it.rarity)}</span>`);
+  if(it.number) chips.push(`<span class="chip num">${esc(it.number)}</span>`);
+  return chips.length?`<div class="chips">${chips.join('')}</div>`:'';
+}
 function renderResults(results, box){
   if(!results.length){ box.innerHTML='<p class="hint">No matches in the live catalog. Try a different spelling, or add it by hand.</p>'; return; }
   box.innerHTML='';
@@ -164,7 +238,7 @@ function renderResults(results, box){
     const el=document.createElement('div'); el.className='card';
     const imgHtml = it.image ? '<img loading="lazy" src="'+esc(it.image)+'" alt="'+esc(it.name)+'">' : '<div class="noimg">🃏</div>';
     el.innerHTML=`
-      ${imgHtml}
+      <div class="card-art">${imgHtml}${chipsHtml(it)}</div>
       <div class="card-body">
         <h4>${esc(it.name)}</h4>
         <div class="set">${esc(it.set||'')}</div>
@@ -176,6 +250,8 @@ function renderResults(results, box){
       </div>`;
     el.querySelector('.add').addEventListener('click', ()=>openModal(it,false));
     el.querySelector('.want').addEventListener('click', ()=>{ state.wishlist.push(normalizeItem({...it, id:uid(), targetPrice:null, note:''})); save(); alert('Added to your wishlist.'); });
+    el.querySelector('.card-art').addEventListener('click', ()=>openModal(it,false));
+    el.querySelector('h4').addEventListener('click', ()=>openModal(it,false));
     box.appendChild(el);
   });
 }
@@ -349,7 +425,7 @@ function itemCard(i, mode){
     if(i.note) extra+=`<div class="set">📝 ${esc(i.note)}</div>`;
   }
   el.innerHTML=`
-    ${imgHtml}
+    <div class="card-art">${imgHtml}${chipsHtml(i)}</div>
     <div class="card-body">
       <h4>${esc(i.name)}${i.qty>1?' ×'+i.qty:''}</h4>
       <div class="set">${esc(CAT_LABEL[i.category]||i.category)}${i.set?' · '+esc(i.set):''}</div>
@@ -365,6 +441,8 @@ function itemCard(i, mode){
       </div>
     </div>`;
   if(mode==='collection'){
+    el.querySelector('.card-art').addEventListener('click', ()=>openModal(i,true));
+    el.querySelector('h4').addEventListener('click', ()=>openModal(i,true));
     el.querySelector('.edit').addEventListener('click', ()=>openModal(i,true));
     el.querySelector('.del').addEventListener('click', ()=>{ if(confirm('Remove “'+i.name+'” from your collection?')){ state.items=state.items.filter(x=>x.id!==i.id); save(); renderCollection(); renderBinders(); } });
   }else if(mode==='wishlist'){
@@ -524,7 +602,7 @@ async function renderSets(){
       const have=owned[s.id]?owned[s.id].size:0;
       const pct=total?Math.min(100,Math.round(have/total*100)):0;
       const d=document.createElement('div'); d.className='set-row';
-      d.innerHTML=`<div class="meta"><strong>${esc(s.name)}</strong><span>${have}/${total} · ${pct}% — tap for missing cards</span></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+      d.innerHTML=`${s.logo?`<img class="set-logo" loading="lazy" src="${esc(s.logo)}" alt="">`:''}<div class="sr-main"><div class="meta"><strong>${esc(s.name)}</strong><span>${have}/${total} · ${pct}% — tap for missing cards</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
       d.addEventListener('click', ()=>showSetDetail(s));
       box.appendChild(d);
     });
@@ -532,8 +610,8 @@ async function renderSets(){
   const mlpBox=document.getElementById('mlpProgress'); mlpBox.innerHTML='';
   MLP_SETS.forEach(s=>{
     const n=state.items.filter(i=>i.category==='mlp'&&i.set===s).reduce((a,i)=>a+(i.qty||1),0);
-    const d=document.createElement('div'); d.className='set-row';
-    d.innerHTML=`<div class="meta"><strong>${esc(s)}</strong><span>${n} cards tracked · value unavailable (no pricing source)</span></div>`;
+    const d=document.createElement('div'); d.className='set-row static';
+    d.innerHTML=`<div class="sr-main"><div class="meta"><strong>${esc(s)}</strong><span>${n} cards tracked · value unavailable (no pricing source)</span></div></div>`;
     mlpBox.appendChild(d);
   });
   const other=document.getElementById('otherSets'); other.innerHTML='';
@@ -541,7 +619,7 @@ async function renderSets(){
   state.items.filter(i=>i.category!=='pokemon'&&i.category!=='mlp'&&i.set).forEach(i=>{ const k=(CAT_LABEL[i.category]||i.category)+' — '+i.set; groups[k]=(groups[k]||0)+(i.qty||1); });
   const keys=Object.keys(groups);
   if(!keys.length) other.innerHTML='<p class="hint">Sets from your other categories will appear here as you add items with a set name.</p>';
-  keys.forEach(k=>{ const d=document.createElement('div'); d.className='set-row'; d.innerHTML=`<div class="meta"><strong>${esc(k)}</strong><span>${groups[k]} cards</span></div>`; other.appendChild(d); });
+  keys.forEach(k=>{ const d=document.createElement('div'); d.className='set-row static'; d.innerHTML=`<div class="sr-main"><div class="meta"><strong>${esc(k)}</strong><span>${groups[k]} cards</span></div></div>`; other.appendChild(d); });
 }
 async function showSetDetail(set){
   const box=document.getElementById('setDetail');
@@ -569,4 +647,4 @@ async function showSetDetail(set){
 document.getElementById('setFilter').addEventListener('input', ()=>{ if(pokeSetsCache) renderSets(); });
 
 /* ---------- init ---------- */
-updateHint(); renderMlpSets(); renderTotals(); renderCollection(); renderWishlist();
+updateHint(); renderMlpSets(); renderTotals(); renderCollection(); renderWishlist(); loadHeroCards(); loadTrending();
